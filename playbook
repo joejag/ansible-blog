@@ -1,0 +1,60 @@
+---
+- hosts: webservers
+  remote_user: ec2-user
+  sudo: yes
+  tasks:
+
+  - name: add node deps
+    shell: curl -sL https://rpm.nodesource.com/setup | sudo bash -
+
+  - name: Git and Jekyll dependencies
+    yum: pkg={{item}} state=installed
+    with_items:
+     - gcc
+     - gcc-c++
+     - make 
+     - git 
+     - nginx 
+     - ruby-devel 
+     - nodejs 
+
+  - name: install Jekyll
+    gem: name=jekyll version=2.5.3 state=present
+    sudo_user: ec2-user
+
+  - name: Add domain names to localhost
+    copy: src=files/hosts dest=/etc/hosts  
+
+  - name: Add www.joejag.com site
+    copy: src=files/nginx_www dest=/etc/nginx/conf.d/www2.joejag.com.conf mode=0644
+
+  - name: Add code.joejag.com site
+    copy: src=files/nginx_code dest=/etc/nginx/conf.d/code2.joejag.com.conf mode=0644
+
+  - name: Create nginx web directory
+    file: dest=/www mode=755 owner=ec2-user group=ec2-user state=directory
+
+  - name: Download www.joejag.com source code
+    git: repo=https://github.com/joejag/blog.git dest=/www/www2.joejag.com version=HEAD
+    sudo_user: ec2-user
+
+  - name: Download code.joejag.com source code
+    git: repo=https://github.com/joejag/techblog.git dest=/www/code2.joejag.com version=HEAD
+    sudo_user: ec2-user
+
+  - name: Build Jekyll site for www.joejag.com
+    command: ~/bin/jekyll build
+    sudo_user: ec2-user
+    args:
+      chdir: /www/www2.joejag.com
+
+  - name: Build Jekyll site for code.joejag.com
+    command: ~/bin/jekyll build
+    sudo_user: ec2-user
+    args:
+      chdir: /www/code2.joejag.com
+
+  - name: restart nginx
+    service: name=nginx state=restarted
+
+

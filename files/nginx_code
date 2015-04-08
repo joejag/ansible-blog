@@ -1,0 +1,6 @@
+server {
+    listen       80;
+    index index.html index.htm;
+    server_name code2.joejag.com;
+    root /www/code2.joejag.com/_site;
+}
